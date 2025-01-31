@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PGP Encrypt/Decrypt</title>
+    <script src="https://cdn.jsdelivr.net/npm/openpgp@5.5.0/dist/openpgp.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            padding: 10px;
+        }
+        input, button {
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            width: 100%;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PGP Encrypt/Decrypt Tool</h1>
+
+        <!-- Public Key Input -->
+        <textarea id="publicKey" placeholder="Enter Public Key"></textarea>
+
+        <!-- Text to Encrypt -->
+        <textarea id="plainText" placeholder="Enter Text to Encrypt"></textarea>
+
+        <button onclick="encryptText()">Encrypt Text</button>
+        <textarea id="encryptedText" placeholder="Encrypted Text"></textarea>
+
+        <!-- Private Key Input -->
+        <textarea id="privateKey" placeholder="Enter Private Key"></textarea>
+        <input type="password" id="passphrase" placeholder="Enter Passphrase">
+
+        <textarea id="cipherText" placeholder="Enter Encrypted Text to Decrypt"></textarea>
+
+        <button onclick="decryptText()">Decrypt Text</button>
+        <textarea id="decryptedText" placeholder="Decrypted Text"></textarea>
+    </div>
+
+    <script>
+        async function encryptText() {
+            const publicKeyArmored = document.getElementById('publicKey').value;
+            const message = document.getElementById('plainText').value;
+
+            if (!publicKeyArmored || !message) {
+                alert("Please provide both the public key and text to encrypt.");
+                return;
+            }
+
+            try {
+                const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
+                const encrypted = await openpgp.encrypt({
+                    message: await openpgp.createMessage({ text: message }),
+                    encryptionKeys: publicKey
+                });
+
+                document.getElementById('encryptedText').value = encrypted;
+            } catch (error) {
+                alert("Encryption failed: " + error.message);
+            }
+        }
+
+        async function decryptText() {
+            const privateKeyArmored = document.getElementById('privateKey').value;
+            const passphrase = document.getElementById('passphrase').value;
+            const encryptedText = document.getElementById('cipherText').value;
+
+            if (!privateKeyArmored || !passphrase || !encryptedText) {
+                alert("Please provide the private key, passphrase, and text to decrypt.");
+                return;
+            }
+
+            try {
+                const privateKey = await openpgp.decryptKey({
+                    privateKey: await openpgp.readPrivateKey({ armoredKey: privateKeyArmored }),
+                    passphrase: passphrase
+                });
+
+                const message = await openpgp.readMessage({
+                    armoredMessage: encryptedText
+                });
+
+                const { data: decrypted } = await openpgp.decrypt({
+                    message: message,
+                    decryptionKeys: privateKey
+                });
+
+                document.getElementById('decryptedText').value = decrypted;
+            } catch (error) {
+                alert("Decryption failed: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
